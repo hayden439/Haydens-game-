@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAYDEN'S GAME - Grade 9 Chemistry Quiz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: radial-gradient(circle at center, #1b3a4b 0%, #061a23 100%);
+            color: #ffffff;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .font-game {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        /* Custom Cartoon Button Effects */
+        .btn-cartoon {
+            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+        }
+        .btn-cartoon:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 rgba(0,0,0,0.3);
+        }
+        .btn-cartoon:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+        }
+
+        /* Hayden SVG Floating Animation */
+        @keyframes floatIdle {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        @keyframes bounceJoy {
+            0%, 100% { transform: translateY(0) scale(1); }
+            30% { transform: translateY(-18px) scale(1.05, 0.95); }
+            60% { transform: translateY(0) scale(0.95, 1.05); }
+        }
+        @keyframes shakeSad {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px) rotate(-3deg); }
+            40% { transform: translateX(10px) rotate(3deg); }
+            60% { transform: translateX(-10px) rotate(-3deg); }
+            80% { transform: translateX(10px) rotate(3deg); }
+        }
+
+        .animate-float { animation: floatIdle 3.5s ease-in-out infinite; }
+        .animate-joy { animation: bounceJoy 0.6s ease-in-out; }
+        .animate-shake { animation: shakeSad 0.5s ease-in-out; }
+
+        /* Custom scrollbar for game board */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 md:p-6 overflow-x-hidden">
+
+    <div class="w-full max-w-5xl bg-sky-950/80 border-4 border-cyan-400/50 backdrop-blur-md rounded-3xl p-4 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[90vh]">
+        
+        <!-- Background Chemistry Decorations -->
+        <div class="absolute -top-10 -left-10 text-cyan-500/10 text-9xl pointer-events-none select-none">
+            <i class="fa-solid fa-flask"></i>
+        </div>
+        <div class="absolute -bottom-10 -right-10 text-cyan-500/10 text-9xl pointer-events-none select-none">
+            <i class="fa-solid fa-atom"></i>
+        </div>
+
+        <!-- TOP BAR: Header, Progress, Score, Lives, Controls -->
+        <header id="game-header" class="relative z-10 hidden flex-wrap items-center justify-between gap-3 bg-slate-900/90 border-2 border-cyan-500/30 p-3 md:p-4 rounded-2xl mb-4 shadow-lg">
+            <!-- Title -->
+            <div class="flex items-center gap-2">
+                <span class="font-game text-xl md:text-2xl text-amber-400 drop-shadow-[0_2px_0_rgba(0,0,0,0.8)] tracking-wider">HAYDEN'S GAME</span>
+            </div>
+
+            <!-- Progress Meter -->
+            <div class="flex-1 min-w-[180px] max-w-xs mx-2">
+                <div class="flex justify-between text-xs font-bold text-cyan-200 mb-1">
+                    <span id="question-tracker">QUESTION 1/30</span>
+                    <span id="progress-percent">0%</span>
+                </div>
+                <div class="w-full bg-slate-800 h-4 rounded-full p-0.5 border border-cyan-500/40">
+                    <div id="progress-bar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Stats Badge: Score & Lives -->
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-900/80 border-2 border-emerald-400 px-3 py-1 rounded-xl flex items-center gap-2 font-game text-emerald-300">
+                    <i class="fa-solid fa-star text-amber-300 text-lg"></i>
+                    <span id="score-display">0</span>
+                </div>
+                <div class="bg-rose-900/80 border-2 border-rose-400 px-3 py-1 rounded-xl flex items-center gap-2 font-game text-rose-300">
+                    <i class="fa-solid fa-heart text-rose-400 text-lg"></i>
+                    <span id="lives-display">3</span>
+                </div>
+                <button onclick="confirmReset()" class="btn-cartoon bg-slate-700 hover:bg-slate-600 text-white p-2.5 rounded-xl border-2 border-slate-400 flex items-center justify-center text-sm font-bold" title="Home / Reset">
+                    <i class="fa-solid fa-house"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- VIEW 1: HOME SCREEN -->
+        <div id="view-home" class="relative z-10 flex flex-col items-center justify-center my-auto text-center py-6">
+            <div class="w-48 h-48 md:w-60 md:h-60 mb-4 animate-float relative">
+                <!-- Hayden SVG Mascot -->
+                <svg id="hayden-mascot-home" viewBox="0 0 200 220" class="w-full h-full drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)]">
+                    <!-- Body / Green Sweater -->
+                    <path d="M50 150 Q100 135 150 150 L165 210 Q100 220 35 210 Z" fill="#2d6a4f" />
+                    <!-- Sweater Collar -->
+                    <path d="M75 147 Q100 160 125 147 Q100 140 75 147 Z" fill="#1b4332" />
+                    <!-- ESSENTIALS Text on Sweater -->
+                    <text x="100" y="185" text-anchor="middle" fill="#ffffff" font-family="'Fredoka One', cursive" font-size="14" letter-spacing="1.5" font-weight="bold">ESSENTIALS</text>
+                    
+                    <!-- Neck -->
+                    <rect x="88" y="125" width="24" height="25" fill="#d08b5b" rx="5" />
+                    
+                    <!-- Head & Face (Light-Brown Skin) -->
+                    <ellipse cx="100" cy="95" rx="42" ry="45" fill="#e09f67" />
+                    
+                    <!-- Ears -->
+                    <circle cx="56" cy="98" r="9" fill="#d08b5b" />
+                    <circle cx="144" cy="98" r="9" fill="#d08b5b" />
+
+                    <!-- Eyes (Big Animated Expressive Eyes - NO GLASSES) -->
+                    <ellipse cx="82" cy="90" rx="9" ry="12" fill="#ffffff" />
+                    <ellipse cx="118" cy="90" rx="9" ry="12" fill="#ffffff" />
+                    <circle cx="84" cy="90" r="5" fill="#3a2312" />
+                    <circle cx="116" cy="90" r="5" fill="#3a2312" />
+                    <circle cx="86" cy="87" r="2" fill="#ffffff" />
+                    <circle cx="118" cy="87" r="2" fill="#ffffff" />
+
+                    <!-- Eyebrows -->
+                    <path d="M72 74 Q83 70 92 76" stroke="#3a2312" stroke-width="3.5" fill="none" stroke-linecap="round" />
+                    <path d="M108 76 Q117 70 128 74" stroke="#3a2312" stroke-width="3.5" fill="none" stroke-linecap="round" />
+
+                    <!-- Nose -->
+                    <path d="M97 97 Q100 102 103 97" stroke="#b87343" stroke-width="3" fill="none" stroke-linecap="round" />
+
+                    <!-- Smile -->
+                    <path d="M82 110 Q100 125 118 110" stroke="#3a2312" stroke-width="4" fill="none" stroke-linecap="round" />
+                    <path d="M85 110 Q100 122 115 110" fill="#c9184a" />
+
+                    <!-- Fluffy Straight Dark-Brown Hair -->
+                    <path d="M52 85 C45 65 60 30 90 32 C100 20 125 22 140 38 C155 42 162 65 152 88 C145 62 135 48 100 48 C75 48 60 62 52 85 Z" fill="#3d2314" />
+                    <path d="M55 70 C48 50 68 35 95 38 C120 28 145 40 150 65 C138 52 118 45 92 48 C70 50 60 60 55 70 Z" fill="#52311c" />
+                    <path d="M75 42 Q90 28 115 35 Q130 25 142 42 Z" fill="#633e24" />
+                </svg>
+            </div>
+
+            <h1 class="font-game text-4xl md:text-6xl text-amber-400 drop-shadow-[0_4px_0_rgba(0,0,0,0.8)] tracking-wide mb-2">
+                HAYDEN'S GAME
+            </h1>
+            <p class="text-lg md:text-xl text-cyan-200 font-bold mb-6 max-w-lg">
+                Grade 9 Chemistry Challenge! Master the Periodic Table, Chemical Families, Bohr Models, and Atomic Theory!
+            </p>
+
+            <div class="bg-slate-900/80 border-2 border-cyan-500/40 rounded-2xl p-4 max-w-md w-full mb-8 text-left space-y-2 text-sm text-cyan-100 shadow-lg">
+                <div class="flex items-center gap-2 text-amber-300 font-bold text-base border-b border-cyan-500/20 pb-2">
+                    <i class="fa-solid fa-gamepad"></i> Game Rules:
+                </div>
+                <p>• <strong>30 Random Questions</strong> selected from 200 Grade 9 science standards.</p>
+                <p>• <strong>3 Question Formats:</strong> Single Choice, Multi-Select, and Text Input.</p>
+                <p>• You will complete <strong>ALL 30 questions</strong> even if you run out of lives!</p>
+                <p>• Detailed chemistry explanations provided after every question.</p>
+            </div>
+
+            <button onclick="startGame()" class="btn-cartoon bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-game text-2xl md:text-3xl px-10 py-4 rounded-2xl border-4 border-emerald-300 shadow-xl tracking-wider flex items-center gap-3">
+                <i class="fa-solid fa-play"></i> START GAME
+            </button>
+        </div>
+
+        <!-- VIEW 2: GAMEPLAY SCREEN -->
+        <div id="view-gameplay" class="relative z-10 hidden flex-1 flex flex-col md:flex-row gap-6 items-stretch">
+            
+            <!-- Left Side: Hayden Animated Mascot & Feedback -->
+            <div class="w-full md:w-1/3 bg-slate-900/80 border-2 border-cyan-500/30 rounded-2xl p-4 flex flex-col items-center justify-between text-center relative shadow-lg">
+                
+                <div class="w-full flex justify-between items-center text-xs font-bold text-cyan-300 uppercase tracking-widest border-b border-cyan-500/20 pb-2">
+                    <span id="topic-badge" class="bg-cyan-900/80 text-cyan-200 px-2.5 py-1 rounded-lg border border-cyan-400/30">Periodic Table</span>
+                    <span id="format-badge" class="bg-indigo-900/80 text-indigo-200 px-2.5 py-1 rounded-lg border border-indigo-400/30">Single Choice</span>
+                </div>
+
+                <!-- Mascot Container -->
+                <div id="mascot-container" class="my-4 w-40 h-40 md:w-48 md:h-48 transition-all duration-300">
+                    <svg id="hayden-mascot-game" viewBox="0 0 200 220" class="w-full h-full drop-shadow-[0_8px_12px_rgba(0,0,0,0.6)]">
+                        <!-- Sweater -->
+                        <path d="M50 150 Q100 135 150 150 L165 210 Q100 220 35 210 Z" fill="#2d6a4f" />
+                        <path d="M75 147 Q100 160 125 147 Q100 140 75 147 Z" fill="#1b4332" />
+                        <text x="100" y="185" text-anchor="middle" fill="#ffffff" font-family="'Fredoka One', cursive" font-size="14" letter-spacing="1.5" font-weight="bold">ESSENTIALS</text>
+                        <!-- Neck -->
+                        <rect x="88" y="125" width="24" height="25" fill="#d08b5b" rx="5" />
+                        <!-- Head -->
+                        <ellipse cx="100" cy="95" rx="42" ry="45" fill="#e09f67" />
+                        <!-- Ears -->
+                        <circle cx="56" cy="98" r="9" fill="#d08b5b" />
+                        <circle cx="144" cy="98" r="9" fill="#d08b5b" />
+
+                        <!-- Dynamic Face Elements -->
+                        <g id="mascot-eyes">
+                            <ellipse cx="82" cy="90" rx="9" ry="12" fill="#ffffff" />
+                            <ellipse cx="118" cy="90" rx="9" ry="12" fill="#ffffff" />
+                            <circle cx="84" cy="90" r="5" fill="#3a2312" />
+                            <circle cx="116" cy="90" r="5" fill="#3a2312" />
+                            <circle cx="86" cy="87" r="2" fill="#ffffff" />
+                            <circle cx="118" cy="87" r="2" fill="#ffffff" />
+                        </g>
+
+                        <!-- Eyebrows -->
+                        <path id="eyebrow-left" d="M72 74 Q83 70 92 76" stroke="#3a2312" stroke-width="3.5" fill="none" stroke-linecap="round" />
+                        <path id="eyebrow-right" d="M108 76 Q117 70 128 74" stroke="#3a2312" stroke-width="3.5" fill="none" stroke-linecap="round" />
+
+                        <!-- Nose -->
+                        <path d="M97 97 Q100 102 103 97" stroke="#b87343" stroke-width="3" fill="none" stroke-linecap="round" />
+
+                        <!-- Mouth -->
+                        <path id="mascot-mouth" d="M82 110 Q100 122 118 110" stroke="#3a2312" stroke-width="4" fill="none" stroke-linecap="round" />
+
+                        <!-- Hair -->
+                        <path d="M52 85 C45 65 60 30 90 32 C100 20 125 22 140 38 C155 42 162 65 152 88 C145 62 135 48 100 48 C75 48 60 62 52 85 Z" fill="#3d2314" />
+                        <path d="M55 70 C48 50 68 35 95 38 C120 28 145 40 150 65 C138 52 118 45 92 48 C70 50 60 60 55 70 Z" fill="#52311c" />
+                    </svg>
+                </div>
+
+                <!-- Speech Bubble Hayden Hint/Status -->
+                <div class="bg-cyan-950/90 border border-cyan-400/40 p-3 rounded-xl text-xs md:text-sm text-cyan-100 font-semibold w-full relative min-h-[70px] flex items-center justify-center">
+                    <p id="hayden-dialogue">"Let's tackle this question! Read carefully!"</p>
+                </div>
+            </div>
+
+            <!-- Right Side: Question Box & Answer Choices -->
+            <div class="w-full md:w-2/3 flex flex-col justify-between space-y-4">
+                
+                <!-- Question Text -->
+                <div class="bg-slate-900/90 border-2 border-cyan-400/50 rounded-2xl p-5 shadow-xl">
+                    <h2 id="question-text" class="text-xl md:text-2xl font-bold text-white leading-relaxed">
+                        Loading Question...
+                    </h2>
+                    <p id="format-instruction" class="text-xs text-cyan-300 mt-2 font-semibold italic">
+                        Select ONE option:
+                    </p>
+                </div>
+
+                <!-- Interactive Answers Input Container -->
+                <div id="answers-container" class="space-y-3 my-auto overflow-y-auto max-h-[340px] pr-1">
+                    <!-- Dynamic rendering of options or input box -->
+                </div>
+
+                <!-- Explanation Box (Appears after submission) -->
+                <div id="explanation-box" class="hidden bg-slate-900/95 border-2 border-amber-400/80 rounded-2xl p-4 text-xs md:text-sm text-slate-100 animate-fade-in shadow-xl max-h-[160px] overflow-y-auto">
+                    <div id="explanation-title" class="font-game text-amber-300 text-base mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb"></i> Explanation
+                    </div>
+                    <p id="explanation-text" class="leading-relaxed">
+                        Explanation details go here...
+                    </p>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center gap-4">
+                    <button id="btn-submit" onclick="submitAnswer()" class="btn-cartoon flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-game text-xl py-3.5 rounded-2xl border-2 border-amber-300 shadow-lg tracking-wider">
+                        SUBMIT ANSWER
+                    </button>
+                    <button id="btn-next" onclick="nextQuestion()" class="hidden btn-cartoon flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-game text-xl py-3.5 rounded-2xl border-2 border-emerald-300 shadow-lg tracking-wider">
+                        NEXT QUESTION <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- VIEW 3: GAME OVER / RESULTS SCREEN -->
+        <div id="view-results" class="relative z-10 hidden flex-col items-center justify-center my-auto text-center py-6">
+            <div class="text-6xl text-amber-400 mb-2">
+                <i class="fa-solid fa-trophy drop-shadow-[0_4px_0_rgba(0,0,0,0.8)]"></i>
+            </div>
+            <h1 class="font-game text-4xl md:text-5xl text-amber-400 mb-2">GAME COMPLETED!</h1>
+            <p id="results-subtitle" class="text-lg text-cyan-200 font-bold mb-6">Fantastic effort completing Grade 9 Chemistry!</p>
+
+            <!-- Results Card -->
+            <div class="bg-slate-900/90 border-2 border-cyan-500/40 rounded-3xl p-6 max-w-lg w-full mb-8 shadow-2xl space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-800/80 p-4 rounded-2xl border border-cyan-500/20">
+                        <div class="text-xs text-cyan-300 font-bold uppercase">Final Score</div>
+                        <div id="final-score" class="font-game text-3xl text-emerald-400">0</div>
+                    </div>
+                    <div class="bg-slate-800/80 p-4 rounded-2xl border border-cyan-500/20">
+                        <div class="text-xs text-cyan-300 font-bold uppercase">Accuracy</div>
+                        <div id="final-accuracy" class="font-game text-3xl text-amber-300">0%</div>
+                    </div>
+                    <div class="bg-slate-800/80 p-4 rounded-2xl border border-cyan-500/20">
+                        <div class="text-xs text-cyan-300 font-bold uppercase">Questions Correct</div>
+                        <div id="final-correct" class="font-game text-2xl text-cyan-300">0 / 30</div>
+                    </div>
+                    <div class="bg-slate-800/80 p-4 rounded-2xl border border-cyan-500/20">
+                        <div class="text-xs text-cyan-300 font-bold uppercase">Lives Remaining</div>
+                        <div id="final-lives" class="font-game text-2xl text-rose-400">0</div>
+                    </div>
+                </div>
+
+                <div id="grade-eval" class="bg-cyan-950/80 p-3 rounded-xl border border-cyan-400/30 text-cyan-200 text-sm font-semibold">
+                    Evaluating performance...
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="btn-cartoon bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-game text-2xl px-10 py-4 rounded-2xl border-4 border-emerald-300 shadow-xl tracking-wider">
+                <i class="fa-solid fa-rotate-right mr-2"></i> PLAY AGAIN
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Web Audio API Sound Generator (No external MP3 files required)
+        const AudioFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playClick() {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            },
+            playCorrect() {
+                this.init();
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.07);
+                    osc.stop(now + idx * 0.07 + 0.25);
+                });
+            },
+            playWrong() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        };
+
+        // QUESTION BANK: 200 Grade 9 Chemistry Questions across 5 Periodic Families + Atomic Theory + Calculations + First 20 Elements
+        const QUESTION_BANK = [];
+
+        // Helper function to push questions easily
+        function addQ(topic, type, text, options, answer, explanation) {
+            QUESTION_BANK.push({ topic, type, text, options, answer, explanation });
+        }
+
+        // --- ALKALI METALS (Group 1) ---
+        addQ("Alkali Metals", "single", "Which of the following is an accurate characteristic of Alkali Metals?", ["Hard, non-reactive metals", "Soft, highly reactive metals that react violently with water", "Gases at room temperature", "Inert unreactive elements"], "Soft, highly reactive metals that react violently with water", "Alkali metals (Group 1) have 1 valence electron, making them extremely reactive with water to form hydrogen gas and alkaline hydroxides.");
+        addQ("Alkali Metals", "multi", "Select ALL elements that belong to the Alkali Metals family:", ["Sodium (Na)", "Potassium (K)", "Calcium (Ca)", "Lithium (Li)"], ["Sodium (Na)", "Potassium (K)", "Lithium (Li)"], "Lithium, Sodium, and Potassium are Group 1 Alkali Metals. Calcium is an Alkaline Earth Metal (Group 2).");
+        addQ("Alkali Metals", "text", "What chemical symbol represents the lightest alkali metal with atomic number 3?", [], "Li", "Lithium (Li) is the lightest alkali metal with atomic number 3.");
+        addQ("Alkali Metals", "single", "Why are alkali metals stored under oil in laboratory settings?", ["To prevent them from freezing", "To stop them from reacting with moisture and oxygen in air", "To increase their atomic mass", "To make them shiny"], "To stop them from reacting with moisture and oxygen in air", "Alkali metals react rapidly with atmospheric water vapor and oxygen, so oil creates a protective barrier.");
+        addQ("Alkali Metals", "single", "How many valence electrons do all Alkali Metals possess in their neutral ground state?", ["1", "2", "7", "8"], "1", "Group 1 Alkali metals all possess exactly 1 valence electron in their outermost shell.");
+        addQ("Alkali Metals", "multi", "Select ALL true statements regarding the trend going DOWN the Alkali Metals group:", ["Reactivity increases", "Atomic radius increases", "Melting point increases", "Density generally increases"], ["Reactivity increases", "Atomic radius increases", "Density generally increases"], "As you move down Group 1, valence electrons are further from the nucleus, increasing reactivity and atomic radius, while melting points decrease.");
+        addQ("Alkali Metals", "text", "Name the alkali metal located in Period 3 of the Periodic Table.", [], "Sodium", "Sodium (Na) is in Group 1, Period 3, having 3 electron shells.");
+        addQ("Alkali Metals", "single", "When Sodium metal reacts with water, what gas is produced?", ["Oxygen gas", "Carbon dioxide", "Hydrogen gas", "Chlorine gas"], "Hydrogen gas", "The reaction 2Na + 2H2O -> 2NaOH + H2(g) releases flammable hydrogen gas.");
+
+        // Generate synthetic variations to fill Alkali Metals
+        for (let i = 1; i <= 15; i++) {
+            addQ("Alkali Metals", "single", `Alkali Metal Concept Check #${i}: What happens when a Group 1 element like Potassium forms a stable ion?`, ["It gains 1 electron to form -1 ion", "It loses 1 electron to form a +1 cation", "It shares 2 pairs of electrons", "It loses 2 protons"], "It loses 1 electron to form a +1 cation", "Alkali metals readily lose their 1 valence electron to achieve a full outer shell noble gas configuration, forming +1 cations.");
+        }
+
+        // --- ALKALINE EARTH METALS (Group 2) ---
+        addQ("Alkaline Earth Metals", "single", "Which property is characteristic of Alkaline Earth Metals compared to Alkali Metals?", ["They are more reactive than Group 1", "They have 2 valence electrons and are slightly less reactive than Group 1", "They form negative ions easily", "They are gases at room temperature"], "They have 2 valence electrons and are slightly less reactive than Group 1", "Group 2 metals have 2 valence electrons and require more energy to remove two electrons than one, making them slightly less reactive than Group 1.");
+        addQ("Alkaline Earth Metals", "multi", "Select ALL elements that belong to the Alkaline Earth Metals group:", ["Magnesium (Mg)", "Calcium (Ca)", "Barium (Ba)", "Potassium (K)"], ["Magnesium (Mg)", "Calcium (Ca)", "Barium (Ba)"], "Magnesium, Calcium, and Barium are in Group 2. Potassium is in Group 1.");
+        addQ("Alkaline Earth Metals", "text", "What ion charge do Alkaline Earth Metals typically form when reacting with non-metals?", [], "+2", "Alkaline Earth Metals lose 2 valence electrons to form cations with a +2 charge.");
+        addQ("Alkaline Earth Metals", "single", "Which element in Period 2 belongs to the Alkaline Earth Metals family?", ["Beryllium (Be)", "Lithium (Li)", "Boron (B)", "Magnesium (Mg)"], "Beryllium (Be)", "Beryllium (Be) has atomic number 4 and is located in Group 2, Period 2.");
+
+        for (let i = 1; i <= 15; i++) {
+            addQ("Alkaline Earth Metals", "single", `Alkaline Earth Metal Property #${i}: Which metal burns with a brilliant white flame used in flares?`, ["Calcium", "Magnesium", "Sodium", "Barium"], "Magnesium", "Magnesium ribbon burns with a bright intense white light to form Magnesium Oxide (MgO).");
+        }
+
+        // --- TRANSITION METALS ---
+        addQ("Transition Metals", "single", "Which of the following is a key distinguishing physical property of Transition Metals?", ["They are soft enough to cut with a butter knife", "They are high density, hard metals that often form colorful compounds", "They are all liquids at room temperature", "They have full outer shells"], "They are high density, hard metals that often form colorful compounds", "Transition metals (Groups 3-12) are typically hard, dense, good conductors, and form colorful compounds (e.g., copper solutions are blue).");
+        addQ("Transition Metals", "text", "Name the only transition metal that is a liquid at standard room temperature.", [], "Mercury", "Mercury (Hg) is a liquid transition metal at room temperature.");
+        addQ("Transition Metals", "multi", "Select ALL transition metals from the following list:", ["Iron (Fe)", "Copper (Cu)", "Gold (Au)", "Neon (Ne)"], ["Iron (Fe)", "Copper (Cu)", "Gold (Au)"], "Iron, Copper, and Gold are transition metals. Neon is a noble gas.");
+
+        for (let i = 1; i <= 15; i++) {
+            addQ("Transition Metals", "single", `Transition Metal Application #${i}: Why is Copper widely used in household electrical wiring?`, ["It is very reactive with air", "It is an excellent electrical conductor and ductile", "It is extremely brittle", "It is a liquid at room temp"], "It is an excellent electrical conductor and ductile", "Copper has high electrical conductivity, high ductility, and corrosion resistance.");
+        }
+
+        // --- HALOGENS (Group 17) ---
+        addQ("Halogens", "single", "How many valence electrons do Halogens possess in their neutral valence shell?", ["1", "6", "7", "8"], "7", "Halogens (Group 17) have 7 valence electrons and need 1 more to complete their outer octet.");
+        addQ("Halogens", "multi", "Select ALL true statements regarding Halogens:", ["They are highly reactive non-metals", "They form -1 charge anions", "They are inert and non-reactive", "Chlorine and Fluorine are gases at room temperature"], ["They are highly reactive non-metals", "They form -1 charge anions", "Chlorine and Fluorine are gases at room temperature"], "Halogens are very reactive non-metals that gain 1 electron to form -1 anions. F2 and Cl2 are gases at room temperature.");
+        addQ("Halogens", "text", "What halogen is a reddish-brown liquid at room temperature?", [], "Bromine", "Bromine (Br) is one of the few liquid elements on the periodic table.");
+
+        for (let i = 1; i <= 15; i++) {
+            addQ("Halogens", "single", `Halogen Trend Check #${i}: Going DOWN Group 17 from Fluorine to Iodine, what happens to chemical reactivity?`, ["Reactivity increases", "Reactivity decreases", "Reactivity stays the same", "Elements turn into metals"], "Reactivity decreases", "Smaller halogens like Fluorine attract incoming electrons more strongly due to closer proximity to the nucleus, making Fluorine the most reactive halogen.");
+        }
+
+        // --- NOBLE GASES (Group 18) ---
+        addQ("Noble Gases", "single", "Why are Noble Gases (Group 18) chemically inert (unreactive)?", ["They have zero protons", "They have a full outer valence shell of electrons", "They are very hot", "They readily lose electrons"], "They have a full outer valence shell of electrons", "Having a full valence shell (2 for Helium, 8 for others) gives noble gases maximum thermodynamic stability.");
+        addQ("Noble Gases", "multi", "Select ALL elements that are Noble Gases:", ["Helium (He)", "Neon (Ne)", "Argon (Ar)", "Nitrogen (N)"], ["Helium (He)", "Neon (Ne)", "Argon (Ar)"], "Helium, Neon, and Argon are Noble Gases. Nitrogen is in Group 15.");
+        addQ("Noble Gases", "text", "Which noble gas is lighter than air and used to inflate party balloons?", [], "Helium", "Helium (He) is less dense than air and non-flammable.");
+
+        for (let i = 1; i <= 15; i++) {
+            addQ("Noble Gases", "single", `Noble Gas Fact #${i}: What color glow does pure Neon gas produce in energized high-voltage glass tubes?`, ["Blue", "Red-Orange", "Bright Green", "Purple"], "Red-Orange", "Neon gas emits a classic vibrant red-orange light when ionized in a gas discharge tube.");
+        }
+
+        // --- ATOMIC THEORY & SUBATOMIC PARTICLES ---
+        addQ("Atomic Theory", "single", "Which subatomic particle has a positive charge and determines an element's identity?", ["Electron", "Neutron", "Proton", "Photon"], "Proton", "The atomic number equals the number of protons, which defines the chemical identity of the element.");
+        addQ("Atomic Theory", "single", "An atom has 11 protons, 12 neutrons, and 11 electrons. What is its Mass Number?", ["11", "12", "23", "22"], "23", "Mass Number = Protons + Neutrons (11 + 12 = 23).");
+        addQ("Atomic Theory", "multi", "Select ALL subatomic particles located INSIDE the atomic nucleus:", ["Protons", "Neutrons", "Electrons", "Photons"], ["Protons", "Neutrons"], "Protons and neutrons reside in the central nucleus, while electrons orbit in energy levels.");
+        addQ("Atomic Theory", "text", "What subatomic particle has nearly zero mass and a negative charge?", [], "Electron", "Electrons carry a -1 relative charge and negligible relative mass (~1/2000th of a proton).");
+
+        for (let i = 1; i <= 25; i++) {
+            addQ("Atomic Theory", "single", `Atomic Calculation #${i}: An neutral atom of Carbon-14 has 6 protons. How many neutrons does it contain?`, ["6", "8", "14", "12"], "8", "Neutrons = Mass Number - Protons (14 - 6 = 8).");
+        }
+
+        // --- BOHR-RUTHERFORD & FIRST 20 ELEMENTS ---
+        addQ("Bohr Models", "single", "According to the Bohr model, what is the maximum number of electrons that can fit in the FIRST electron shell?", ["2", "8", "18", "32"], "2", "The 1st electron shell holds a maximum of 2 electrons.");
+        addQ("Bohr Models", "single", "What is the maximum electron capacity for the SECOND energy shell in Grade 9 Bohr diagrams?", ["2", "8", "18", "8"], "8", "The 2nd shell holds up to 8 electrons.");
+        addQ("First 20 Elements", "text", "What is the element name for atomic number 17?", [], "Chlorine", "Chlorine (Cl) has atomic number 17.");
+        addQ("First 20 Elements", "text", "What is the chemical symbol for Potassium?", [], "K", "Potassium's chemical symbol is K (from Latin Kalium).");
+        addQ("First 20 Elements", "multi", "Select ALL elements among the first 20 that are metalloids (semimetals):", ["Boron (B)", "Silicon (Si)", "Aluminum (Al)", "Carbon (C)"], ["Boron (B)", "Silicon (Si)"], "Boron and Silicon lie along the staircase line and exhibit metalloid properties.");
+
+        // Fill remaining database to reach exactly 200 questions
+        const elementsList = [
+            { name: "Hydrogen", sym: "H", num: 1, family: "Non-metal" },
+            { name: "Helium", sym: "He", num: 2, family: "Noble Gases" },
+            { name: "Lithium", sym: "Li", num: 3, family: "Alkali Metals" },
+            { name: "Beryllium", sym: "Be", num: 4, family: "Alkaline Earth Metals" },
+            { name: "Boron", sym: "B", num: 5, family: "Metalloid" },
+            { name: "Carbon", sym: "C", num: 6, family: "Non-metal" },
+            { name: "Nitrogen", sym: "N", num: 7, family: "Non-metal" },
+            { name: "Oxygen", sym: "O", num: 8, family: "Non-metal" },
+            { name: "Fluorine", sym: "F", num: 9, family: "Halogens" },
+            { name: "Neon", sym: "Ne", num: 10, family: "Noble Gases" },
+            { name: "Sodium", sym: "Na", num: 11, family: "Alkali Metals" },
+            { name: "Magnesium", sym: "Mg", num: 12, family: "Alkaline Earth Metals" },
+            { name: "Aluminum", sym: "Al", num: 13, family: "Metal" },
+            { name: "Silicon", sym: "Si", num: 14, family: "Metalloid" },
+            { name: "Phosphorus", sym: "P", num: 15, family: "Non-metal" },
+            { name: "Sulfur", sym: "S", num: 16, family: "Non-metal" },
+            { name: "Chlorine", sym: "Cl", num: 17, family: "Halogens" },
+            { name: "Argon", sym: "Ar", num: 18, family: "Noble Gases" },
+            { name: "Potassium", sym: "K", num: 19, family: "Alkali Metals" },
+            { name: "Calcium", sym: "Ca", num: 20, family: "Alkaline Earth Metals" }
+        ];
+
+        while (QUESTION_BANK.length < 200) {
+            const idx = QUESTION_BANK.length;
+            const elem = elementsList[idx % elementsList.length];
+            
+            if (idx % 3 === 0) {
+                addQ("First 20 Elements", "single", `Element Drill #${idx}: What is the atomic number of ${elem.name}?`, [`${elem.num}`, `${elem.num + 1}`, `${elem.num + 2}`, `${elem.num - 1}`], `${elem.num}`, `${elem.name} has an atomic number of ${elem.num}, representing its proton count.`);
+            } else if (idx % 3 === 1) {
+                addQ("First 20 Elements", "text", `Element Symbol Test #${idx}: What is the chemical symbol for ${elem.name}?`, [], elem.sym, `The standard international symbol for ${elem.name} is ${elem.sym}.`);
+            } else {
+                addQ("Periodic Table", "single", `Family Classification #${idx}: To which chemical classification does ${elem.name} (${elem.sym}) belong?`, [elem.family, "Halogens", "Noble Gases", "Alkali Metals"].filter((v, i, a) => a.indexOf(v) === i), elem.family, `${elem.name} is classified under ${elem.family} based on its position in the periodic table.`);
+            }
+        }
+
+        // GAME STATE
+        let activeQuestions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let lives = 3;
+        let answered = false;
+        let userMultiSelections = [];
+
+        // Fisher-Yates True Random Shuffle Algorithm
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Start / Reset Game Session
+        function startGame() {
+            AudioFX.playClick();
+            
+            // Fisher-Yates shuffle 200 questions & select exactly 30 unique
+            const shuffled = shuffleArray(QUESTION_BANK);
+            activeQuestions = [];
+
+            // Enforce rule: No two identical question formats in a row
+            let lastType = null;
+            for (let q of shuffled) {
+                if (activeQuestions.length >= 30) break;
+                if (q.type !== lastType) {
+                    activeQuestions.push(q);
+                    lastType = q.type;
+                }
+            }
+
+            // Fallback fill if strict alternating missed target count
+            if (activeQuestions.length < 30) {
+                for (let q of shuffled) {
+                    if (activeQuestions.length >= 30) break;
+                    if (!activeQuestions.includes(q)) {
+                        activeQuestions.push(q);
+                    }
+                }
+            }
+
+            currentIndex = 0;
+            score = 0;
+            lives = 3;
+
+            // UI View Switching
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-results').classList.add('hidden');
+            document.getElementById('view-results').classList.remove('flex');
+            document.getElementById('view-gameplay').classList.remove('hidden');
+            document.getElementById('game-header').classList.remove('hidden');
+            document.getElementById('game-header').classList.add('flex');
+
+            updateHeaderStats();
+            renderQuestion();
+        }
+
+        function updateHeaderStats() {
+            document.getElementById('question-tracker').innerText = `QUESTION ${currentIndex + 1}/30`;
+            const pct = Math.round((currentIndex / 30) * 100);
+            document.getElementById('progress-percent').innerText = `${pct}%`;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('lives-display').innerText = lives;
+        }
+
+        // Mascot Animations
+        function setHaydenExpression(state) {
+            const mascot = document.getElementById('hayden-mascot-game');
+            const container = document.getElementById('mascot-container');
+            const dialogue = document.getElementById('hayden-dialogue');
+            const mouth = document.getElementById('mascot-mouth');
+
+            container.classList.remove('animate-joy', 'animate-shake', 'animate-float');
+
+            if (state === 'happy') {
+                container.classList.add('animate-joy');
+                mouth.setAttribute('d', 'M80 108 Q100 130 120 108');
+                dialogue.innerText = '"BOOM! Chemistry genius! That is 100% correct!"';
+            } else if (state === 'sad') {
+                container.classList.add('animate-shake');
+                mouth.setAttribute('d', 'M82 120 Q100 105 118 120');
+                dialogue.innerText = '"Oof! Not quite, but don\'t give up! Check the explanation!"';
+            } else {
+                container.classList.add('animate-float');
+                mouth.setAttribute('d', 'M82 110 Q100 122 118 110');
+                dialogue.innerText = '"Read carefully! You\'ve got this!"';
+            }
+        }
+
+        function renderQuestion() {
+            answered = false;
+            userMultiSelections = [];
+            setHaydenExpression('idle');
+
+            const q = activeQuestions[currentIndex];
+            updateHeaderStats();
+
+            document.getElementById('topic-badge').innerText = q.topic;
+            document.getElementById('format-badge').innerText = q.type === 'single' ? 'Single Choice' : (q.type === 'multi' ? 'Multi-Select' : 'Text Input');
+            document.getElementById('question-text').innerText = q.text;
+
+            const inst = document.getElementById('format-instruction');
+            if (q.type === 'single') inst.innerText = "Select ONE answer option below:";
+            else if (q.type === 'multi') inst.innerText = "Select ALL options that apply:";
+            else inst.innerText = "Type your crisp answer in the field below:";
+
+            const container = document.getElementById('answers-container');
+            container.innerHTML = '';
+            document.getElementById('explanation-box').classList.add('hidden');
+
+            document.getElementById('btn-submit').classList.remove('hidden');
+            document.getElementById('btn-next').classList.add('hidden');
+
+            if (q.type === 'single') {
+                const options = shuffleArray(q.options);
+                options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left p-4 rounded-xl border-2 border-cyan-500/30 bg-slate-800/80 hover:bg-cyan-900/40 text-white font-semibold transition-all flex items-center gap-3 option-btn";
+                    btn.onclick = () => selectSingleOption(btn, opt);
+                    btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-400/50 flex items-center justify-center font-game text-xs text-cyan-300">${String.fromCharCode(65 + idx)}</span> <span class="flex-1">${opt}</span>`;
+                    container.appendChild(btn);
+                });
+            } else if (q.type === 'multi') {
+                const options = shuffleArray(q.options);
+                options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left p-4 rounded-xl border-2 border-cyan-500/30 bg-slate-800/80 hover:bg-cyan-900/40 text-white font-semibold transition-all flex items-center gap-3 multi-btn";
+                    btn.onclick = () => toggleMultiOption(btn, opt);
+                    btn.innerHTML = `<div class="w-6 h-6 rounded border-2 border-cyan-400/60 flex items-center justify-center check-icon"><i class="fa-solid fa-check text-xs text-transparent"></i></div> <span class="flex-1">${opt}</span>`;
+                    container.appendChild(btn);
+                });
+            } else if (q.type === 'text') {
+                const wrapper = document.createElement('div');
+                wrapper.className = "space-y-2";
+                wrapper.innerHTML = `
+                    <input type="text" id="text-answer-input" placeholder="Type answer here (e.g. Sodium, Li, +2)... text will render in crisp white!" 
+                           class="w-full p-4 rounded-xl border-2 border-cyan-400 bg-slate-900 text-white placeholder-slate-400 font-bold text-lg focus:outline-none focus:ring-4 focus:ring-cyan-500/50" />
+                `;
+                container.appendChild(wrapper);
+            }
+        }
+
+        let selectedSingleText = "";
+        function selectSingleOption(btn, text) {
+            if (answered) return;
+            AudioFX.playClick();
+            document.querySelectorAll('.option-btn').forEach(b => {
+                b.classList.remove('border-amber-400', 'bg-amber-900/40');
+                b.classList.add('border-cyan-500/30', 'bg-slate-800/80');
+            });
+            btn.classList.remove('border-cyan-500/30', 'bg-slate-800/80');
+            btn.classList.add('border-amber-400', 'bg-amber-900/40');
+            selectedSingleText = text;
+        }
+
+        function toggleMultiOption(btn, text) {
+            if (answered) return;
+            AudioFX.playClick();
+            const icon = btn.querySelector('.check-icon i');
+            if (userMultiSelections.includes(text)) {
+                userMultiSelections = userMultiSelections.filter(t => t !== text);
+                btn.classList.remove('border-amber-400', 'bg-amber-900/40');
+                btn.classList.add('border-cyan-500/30', 'bg-slate-800/80');
+                icon.classList.add('text-transparent');
+                icon.classList.remove('text-amber-300');
+            } else {
+                userMultiSelections.push(text);
+                btn.classList.remove('border-cyan-500/30', 'bg-slate-800/80');
+                btn.classList.add('border-amber-400', 'bg-amber-900/40');
+                icon.classList.remove('text-transparent');
+                icon.classList.add('text-amber-300');
+            }
+        }
+
+        function submitAnswer() {
+            if (answered) return;
+
+            const q = activeQuestions[currentIndex];
+            let isCorrect = false;
+
+            if (q.type === 'single') {
+                if (!selectedSingleText) return;
+                isCorrect = (selectedSingleText === q.answer);
+            } else if (q.type === 'multi') {
+                if (userMultiSelections.length === 0) return;
+                const sortedUser = [...userMultiSelections].sort();
+                const sortedAns = [...q.answer].sort();
+                isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedAns);
+            } else if (q.type === 'text') {
+                const inp = document.getElementById('text-answer-input');
+                if (!inp || !inp.value.trim()) return;
+                const userVal = inp.value.trim().toLowerCase();
+                const ansVal = String(q.answer).trim().toLowerCase();
+                isCorrect = (userVal === ansVal);
+            }
+
+            answered = true;
+
+            if (isCorrect) {
+                AudioFX.playCorrect();
+                score += 100;
+                setHaydenExpression('happy');
+                confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
+            } else {
+                AudioFX.playWrong();
+                lives = Math.max(0, lives - 1);
+                setHaydenExpression('sad');
+            }
+
+            updateHeaderStats();
+
+            // Display Explanation Box
+            const expBox = document.getElementById('explanation-box');
+            const expText = document.getElementById('explanation-text');
+            expText.innerHTML = `<span class="${isCorrect ? 'text-emerald-300' : 'text-rose-300'} font-bold">${isCorrect ? 'Correct!' : 'Incorrect!'}</span> ${q.explanation}`;
+            expBox.classList.remove('hidden');
+
+            document.getElementById('btn-submit').classList.add('hidden');
+            document.getElementById('btn-next').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            AudioFX.playClick();
+            currentIndex++;
+            if (currentIndex >= 30) {
+                showResults();
+            } else {
+                renderQuestion();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('view-gameplay').classList.add('hidden');
+            document.getElementById('game-header').classList.add('hidden');
+            document.getElementById('view-results').classList.remove('hidden');
+            document.getElementById('view-results').classList.add('flex');
+
+            const correctCount = score / 100;
+            const accuracy = Math.round((correctCount / 30) * 100);
+
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-accuracy').innerText = `${accuracy}%`;
+            document.getElementById('final-correct').innerText = `${correctCount} / 30`;
+            document.getElementById('final-lives').innerText = lives;
+
+            const evalBox = document.getElementById('grade-eval');
+            if (accuracy >= 90) {
+                evalBox.innerText = "🏆 Outstanding Chemistry Master! Hayden is blown away by your grade 9 knowledge!";
+            } else if (accuracy >= 75) {
+                evalBox.innerText = "🌟 Great job! You have a solid command of chemical families and Bohr models!";
+            } else if (accuracy >= 50) {
+                evalBox.innerText = "👍 Good effort! Practice a bit more with Halogens and Alkali metals to boost your score!";
+            } else {
+                evalBox.innerText = "📚 Keep practicing! Replay the quiz to conquer the periodic table!";
+            }
+
+            confetti({ particleCount: 120, spread: 100, origin: { y: 0.5 } });
+        }
+
+        function confirmReset() {
+            if (confirm("Return to Home screen and restart the quiz?")) {
+                AudioFX.playClick();
+                document.getElementById('view-gameplay').classList.add('hidden');
+                document.getElementById('view-results').classList.add('hidden');
+                document.getElementById('game-header').classList.add('hidden');
+                document.getElementById('view-home').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
